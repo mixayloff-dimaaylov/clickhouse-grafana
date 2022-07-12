@@ -1,6 +1,7 @@
 ///<reference path="../node_modules/grafana-sdk-mocks/app/headers/common.d.ts" />
 
 import {each, isArray, isEmpty, isString, map} from 'lodash-es';
+import * as _ from 'lodash-es';
 import * as dateMath from 'grafana/app/core/utils/datemath';
 import moment from 'moment';
 import Scanner from './scanner';
@@ -290,7 +291,14 @@ export default class SqlQuery {
         let keyAlias = key.trim().split(' ').pop(),
             valueAlias = value.trim().split(' ').pop(),
             havingIndex = fromQuery.toLowerCase().indexOf('having'),
-            having = "";
+            having = "",
+            aliasRegex = /%(\w+)/g,
+            concatExpr = "";
+
+        if (key.match(/^'.*'$/) && key.match(aliasRegex)) {
+            concatExpr = 'concat(' + key.replace(aliasRegex, "', $1, '").replace(/, ''/g, '') + ')';
+            key = keyAlias = _.uniq(key.match(aliasRegex).map(k => k.slice(1))).join(', ');
+        }
 
         if (havingIndex !== -1) {
             having = ' ' + fromQuery.slice(havingIndex, fromQuery.length);
@@ -300,7 +308,7 @@ export default class SqlQuery {
 
         return beforeMacrosQuery + 'SELECT' +
             ' t,' +
-            ' groupArray((' + keyAlias + ', ' + valueAlias + ')) AS groupArr' +
+            ' groupArray((' + (concatExpr || keyAlias) + ', ' + valueAlias + ')) AS groupArr' +
             ' FROM (' +
             ' SELECT $timeSeries AS t' +
             ', ' + key +
@@ -520,6 +528,9 @@ export default class SqlQuery {
         if (dateTimeType === 'DATETIME64') {
             return '(intDiv(toFloat64($dateTimeCol) * 1000, ($interval * 1000)) * ($interval * 1000))';
         }
+        if (dateTimeType === 'TIMESTAMPMS') {
+            return '(intDiv($dateTimeCol, ($interval * 1000)) * ($interval * 1000))';
+        }
         return '(intDiv($dateTimeCol, $interval) * $interval) * 1000';
     }
 
@@ -529,6 +540,9 @@ export default class SqlQuery {
         }
         if (dateTimeType === 'DATETIME64') {
             return '(intDiv(toFloat64($dateTimeCol) * 1000, $__interval_ms) * $__interval_ms)';
+        }
+        if (dateTimeType === 'TIMESTAMPMS') {
+            return '(intDiv($dateTimeCol * 1000, $__interval_ms) * $__interval_ms)';
         }
         return '(intDiv($dateTimeCol, $__interval_ms) * $__interval_ms)';
     }
@@ -545,6 +559,9 @@ export default class SqlQuery {
             if (dateTimeType === 'DATETIME64') {
                 return 'toDateTime64(' + t + ', 3)';
             }
+            if (dateTimeType === 'TIMESTAMPMS') {
+                return 'toUInt64(' + t + ' * 1000)';
+            }
             return t;
         };
         return '$dateTimeCol >= ' + convertFn('$from') + ' AND $dateTimeCol <= ' + convertFn('$to');
@@ -557,6 +574,9 @@ export default class SqlQuery {
             }
             if (dateTimeType === 'DATETIME64') {
                 return 'toDateTime64(' + t + ', 3)';
+            }
+            if (dateTimeType === 'TIMESTAMPMS') {
+                return 'toUInt64(' + t + ' * 1000)';
             }
             return '(' + t + ')';
         };

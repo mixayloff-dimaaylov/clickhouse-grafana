@@ -98,6 +98,7 @@ class SqlQueryCtrl extends QueryCtrl {
             {text: 'Column:DateTime', value: 'DATETIME'},
             {text: 'Column:DateTime64', value: 'DATETIME64'},
             {text: 'Column:TimeStamp', value: 'TIMESTAMP'},
+            {text: 'Column:TimeStampMs', value: 'TIMESTAMPMS'},
         ];
 
         this.formats = [
@@ -416,6 +417,14 @@ class SqlQueryCtrl extends QueryCtrl {
                     'WHERE database = \'' + this.target.database + '\' AND ' +
                     'table = \'' + this.target.table + '\' AND ' +
                     'type = \'UInt32\' ' +
+                    'ORDER BY name';
+                break;
+            case 'TIMESTAMPMS':
+                query = 'SELECT name ' +
+                    'FROM system.columns ' +
+                    'WHERE database = \'' + this.target.database + '\' AND ' +
+                    'table = \'' + this.target.table + '\' AND ' +
+                    'type = \'UInt64\' ' +
                     'ORDER BY name';
                 break;
             case 'DATABASES':
