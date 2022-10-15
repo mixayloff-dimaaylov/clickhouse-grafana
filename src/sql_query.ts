@@ -529,7 +529,7 @@ export default class SqlQuery {
             return '(intDiv(toFloat64($dateTimeCol) * 1000, ($interval * 1000)) * ($interval * 1000))';
         }
         if (dateTimeType === 'TIMESTAMPMS') {
-            return '(intDiv($dateTimeCol, ($interval * 1000)) * ($interval * 1000))';
+            return '(intDiv($dateTimeCol, ($interval)) * ($interval))';
         }
         return '(intDiv($dateTimeCol, $interval) * $interval) * 1000';
     }
@@ -542,7 +542,7 @@ export default class SqlQuery {
             return '(intDiv(toFloat64($dateTimeCol) * 1000, $__interval_ms) * $__interval_ms)';
         }
         if (dateTimeType === 'TIMESTAMPMS') {
-            return '(intDiv($dateTimeCol * 1000, $__interval_ms) * $__interval_ms)';
+            return '(intDiv($dateTimeCol, $__interval_ms) * $__interval_ms)';
         }
         return '(intDiv($dateTimeCol, $__interval_ms) * $__interval_ms)';
     }
